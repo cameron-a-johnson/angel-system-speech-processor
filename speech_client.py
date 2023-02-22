@@ -1,17 +1,21 @@
-import pyaudio
-import wave
-import struct
+import argparse
 import numpy as np
+import pyaudio
+import requests
+import struct
 import time
+import wave
 
-CHUNK = 1024
 FORMAT = pyaudio.paInt16
+CHUNK = 1024
 CHANNELS = 1
 RATE = 44100
 RECORD_SECONDS = 4
-WAVE_OUTPUT_FILENAME = "output.wav"
+URL = 'http://communication.cs.columbia.edu:8058/home'
+WAV_OUTPUT_FILENAME = "output.wav"
 
-def read_audio_stream():
+
+def read_audio_stream(wav_output_filename: str = WAV_OUTPUT_FILENAME):
     p = pyaudio.PyAudio()
 
     # _ = input("Press enter to continue.")
@@ -45,24 +49,35 @@ def read_audio_stream():
     # print(intframes)
     # print(max(intframes))
     # print(min(intframes))
-    wf = wave.open(WAVE_OUTPUT_FILENAME, 'wb')
+    wf = wave.open(wav_output_filename, 'wb')
     wf.setnchannels(CHANNELS)
     wf.setsampwidth(p.get_sample_size(FORMAT))
     wf.setframerate(RATE)
     wf.writeframes(b''.join(frames))
     wf.close()
 
-    import requests
-
-    url = 'http://communication.cs.columbia.edu:8058/home'
     # print(frames[1])
-    with open(WAVE_OUTPUT_FILENAME, 'rb') as f:
-        x = requests.post(url, files={'audio_data': f})
+    with open(wav_output_filename, 'rb') as f:
+        x = requests.post(URL, files={'audio_data': f})
     # packet = {'audio_data' : frames}
     # x = requests.post(url, json=packet)
     # print(x.text)
     return x.text
 
+def send_audio_file(wav_file: str):
+    with open(wav_file, 'rb') as f:
+        resp = requests.post(URL, files={'audio_data': f})
+    return resp.text
+
 if __name__ == "__main__":
-    print(read_audio_stream())
+
+    parser = argparse.ArgumentParser(description='Process input arguments for ASR server requesting.')
+    parser.add_argument('-f', '--wav_file', type=str,
+                        help='Send a specified .wav file to the ASR server')
+    args = parser.parse_args()
+
+    if args.wav_file:
+        print(print(send_audio_file(args.wav_file)))
+    else:
+        print(read_audio_stream())
 
