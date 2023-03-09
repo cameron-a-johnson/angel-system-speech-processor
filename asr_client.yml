@@ -1,0 +1,10 @@
+name: asr_client
+channels:
+  - conda-forge
+  - defaults
+dependencies:
+  - python=3.9
+  - pyaudio
+  - numpy
+  - requests
+prefix: /Users/derekahmed/miniconda3/envs/asr_client
