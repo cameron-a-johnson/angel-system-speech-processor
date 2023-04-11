@@ -9,11 +9,12 @@ class SpeechRecognizer:
     def __init__(self):
         self.model = whisper.load_model("medium")
 
-    def convert_speech_to_text(self, audio_file_path):
+    def convert_speech_to_text(self, audio_file_path, debug_mode=False):
 
         start_time = time.time()
         audio_input = whisper.load_audio(audio_file_path)
-        print("Processing for audio file", audio_file_path)
+        if debug_mode:
+            print(f"Processing for audio file {audio_file_path}")
 
         audio_input = whisper.pad_or_trim(audio_input)
         mel = whisper.log_mel_spectrogram(audio_input).to(self.model.device)
@@ -22,8 +23,8 @@ class SpeechRecognizer:
         options = whisper.DecodingOptions(language="en")
         result = whisper.decode(self.model, mel, options)
         text = result.text
-        # print the recognized text
-        print("Transcript: ", text)
+        if debug_mode:
+            print(f"Transcript: {text}")
 
         # #audio_input = str(sys.argv[1])
         # audio_input = audio_file_path

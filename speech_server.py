@@ -1,70 +1,67 @@
 from flask import Flask, render_template, request, redirect, jsonify
-#from test_single_audio import SpeechRecognizer
-from speech_recognizer import SpeechRecognizer
-
 from flask_cors import CORS, cross_origin
+import json
 import librosa
-import whisper
+import os
 from requests import Response
+import whisper
+
+from speech_recognizer import SpeechRecognizer
+from voice_activity_detector import VoiceActivityDetector
+
+DEBUG_MODE = True
 
 app = Flask(__name__)
 cors = CORS(app)
 
 sr = SpeechRecognizer()
-#model = whisper.load_model("medium")
+vad = VoiceActivityDetector()
 
-@app.route("/home", methods=["GET", "POST"])
-def home():
-    print("Request received")
-   
-    if request.method == "POST":
-        print("Here")
-        files = request.files
-        print(files)
-        audio_file = files.get('audio_data')
-        print(audio_file)
-        audio_file.save(str(audio_file))
-        # with open(str(audio_file), 'wb') as f:
-            # audio_file.save(str(audio_file))
-            # f.write(audio_file)
-        print(str(audio_file))
-        # file = files.get('audio_data')
-        # file.save('./convert_me.wav')
+@app.route("/asr", methods=["GET", "POST"])
+def apply_asr():
 
-        print("FORM DATA RECEIVED")
+    files = request.files
+    audio_file = files.get('audio_data')
+    if not audio_file:
+        msg = "ASR POST Request received, but missing 'audio_data' field."
+        print(msg)
+        return msg
 
-        transcript = ""
+    print("ASR POST Request received")        
+    audio_file_path = 'test.wav'
+    audio_file.save(audio_file_path)
+    print(f"Saved 'audio_data' at {audio_file_path}")
 
-        # filename = 'convert_me.wav'
-        # file.save(filename)
+    transcript = ""
+    transcript = sr.convert_speech_to_text(audio_file_path)
+    print(f"Transcript:\n\n{transcript}")
+    resp = jsonify({"text": transcript})
+    if not DEBUG_MODE:
+        os.remove(audio_file_path)
+    return resp
 
-        # file.seek(0)
+@app.route("/vad", methods=["GET", "POST"])
+def apply_vad():
+    files = request.files
+    audio_file = files.get('audio_data')
+    if not audio_file:
+        msg = "VAD POST Request received, but missing 'audio_data' field."
+        print(msg)
+        return msg
 
-        # if "audio_file" not in request.files:
-        #     return redirect(request.url)
+    print("VAD POST Request received")        
+    audio_file_path = 'test.wav'
+    audio_file.save(audio_file_path)
+    print(f"Saved 'audio_data' at {audio_file_path}")
 
-        #= request.files["audio_file"]
+    voice_segments = vad.get_segments(audio_file_path)
+    for segment in voice_segments:
+        print(f"Voice segment from {segment[0], segment[1]}")
 
-        # blob = request.data
-        # if blob:
-        #     print("Blob data received!")
-
-        # with open('./convert_me.wav', 'wb') as f:
-        #     f.write(file.read())
-
-        # audio_file = "./convert_me.wav"
-        # print('Audio data saved!')
-        # if file.filename == "":
-        #     return redirect(request.url)
-
-        if audio_file:
-            transcript = sr.convert_speech_to_text(str(audio_file))
-        return jsonify({"text":transcript})
-        # return transcript #{"text": transcript}
-    # else:
-        # print("Not a post")
-        # return "OK"
+    resp = json.dumps({"segments": voice_segments})
+    if not DEBUG_MODE:
+        os.remove(audio_file_path)
+    return resp
 
 if __name__ == "__main__":
-    print("Derek: This is a test")
     app.run(host='0.0.0.0',port=8058)

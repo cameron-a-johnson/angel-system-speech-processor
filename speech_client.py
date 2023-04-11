@@ -1,14 +1,21 @@
-import pyaudio
-import wave
-import struct
+import argparse
+import json
 import numpy as np
+import pyaudio
+import requests
+import struct
 import time
+from typing import *
+import wave
 
 CHUNK = 1024
 FORMAT = pyaudio.paInt16
 CHANNELS = 1
 RATE = 44100
 RECORD_SECONDS = 4
+
+ASR_URL = 'http://communication.cs.columbia.edu:8058/asr'
+VAD_URL = 'http://communication.cs.columbia.edu:8058/vad'
 WAVE_OUTPUT_FILENAME = "output.wav"
 
 def read_audio_stream():
@@ -52,17 +59,50 @@ def read_audio_stream():
     wf.writeframes(b''.join(frames))
     wf.close()
 
-    import requests
+    return WAVE_OUTPUT_FILENAME
 
-    url = 'http://communication.cs.columbia.edu:8058/home'
-    # print(frames[1])
-    with open(WAVE_OUTPUT_FILENAME, 'rb') as f:
-        x = requests.post(url, files={'audio_data': f})
-    # packet = {'audio_data' : frames}
-    # x = requests.post(url, json=packet)
-    # print(x.text)
+def apply_asr(file: str):
+    with open(file, 'rb') as f:
+        print(f"Querying {ASR_URL}")
+        x = requests.post(ASR_URL, files={'audio_data': f})
     return x.text
 
+def apply_vad(file: str):
+    with open(file, 'rb') as f:
+        print(f"Querying {VAD_URL}")
+        x = requests.post(VAD_URL, files={'audio_data': f})
+    return json.loads(x.content)['segments']
+
+def _print_voice_segments(segments: List[Tuple[float]]):
+    if not segments:
+        print("No voice segments found.")
+    for segment in segments:
+        print(f"Voice segment from {segment[0]} to {segment[1]}")
+
+
 if __name__ == "__main__":
-    print(read_audio_stream())
+    parser = argparse.ArgumentParser()
+    parser.add_argument("-f", "--file",
+        help="Process the provided wav file")
+    parser.add_argument('-a', '--asr',
+                        action='store_true')
+    parser.add_argument('--vd',
+                        action='store_true')
+    args = parser.parse_args()
+
+    if args.asr:
+        if args.file:
+            print(apply_asr(args.file))
+        else:
+            filename = read_audio_stream()
+            print(apply_asr(filename))
+
+    voice_segments = None
+    if args.vd:
+        if args.file:
+            voice_segments = apply_vad(args.file)
+        else:
+            filename = read_audio_stream()
+            voice_segments = apply_vad(filename)
+        _print_voice_segments(voice_segments)
 
