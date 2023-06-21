@@ -1,13 +1,22 @@
+import argparse
+from enum import Enum
 import librosa
-from pysndfx import AudioEffectsChain
-import numpy as np
 import math
+import numpy as np
+from pysndfx import AudioEffectsChain
 import python_speech_features
 import scipy as sp
-import argparse
-from tqdm import tqdm
 import soundfile
+from tqdm import tqdm
 
+
+class Reductions(Enum):
+    mfcc_up = 0
+    mfcc_down = 1
+    mfcc_median = 2
+    centroid_mb = 3
+    centroid_s = 4
+    power = 5
 
 def read_file(file_name):
     y, sr = librosa.load(file_name)

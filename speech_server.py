@@ -4,8 +4,10 @@ import json
 import librosa
 import os
 from requests import Response
+from typing import List
 import whisper
 
+import denoising
 from speech_recognizer import SpeechRecognizer
 from voice_activity_detector import VoiceActivityDetector
 
@@ -17,11 +19,27 @@ cors = CORS(app)
 sr = SpeechRecognizer()
 vad = VoiceActivityDetector()
 
+def apply_denoising(filename: str, transformation: str):
+    if transformation ==  denoising.Reductions.mfcc_up.name:
+        denoising.reduce_noise_mfcc_up_file(filename, filename)
+    elif transformation == denoising.Reductions.mfcc_down.name:
+        denoising.reduce_noise_mfcc_down_file(filename, filename)
+    elif transformation == denoising.Reductions.mfcc_median.name:
+        denoising.reduce_noise_mfcc_median_file(filename, filename)
+    elif transformation == denoising.Reductions.centroid_mb.name:
+        denoising.reduce_noise_centroid_mb_file(filename, filename)
+    elif transformation == denoising.Reductions.centroid_s.name:
+        denoising.reduce_noise_centroid_s_file(filename, filename)
+    elif transformation == denoising.Reductions.power.name:
+        denoising.reduce_noise_power_file(filename, filename)
+    else:
+        print(f"Unsupported preprocessing provided {transformation}.")
+
 @app.route("/asr", methods=["GET", "POST"])
 def apply_asr():
 
     files = request.files
-    audio_file = files.get('audio_data')
+    audio_file = files.get('audio_data') 
     if not audio_file:
         msg = "ASR POST Request received, but missing 'audio_data' field."
         print(msg)
@@ -31,6 +49,11 @@ def apply_asr():
     audio_file_path = 'test.wav'
     audio_file.save(audio_file_path)
     print(f"Saved 'audio_data' at {audio_file_path}")
+
+    if 'preprocessing' in request.args.keys():
+        print("Applying denoising...")
+        apply_denoising(audio_file_path, request.args['preprocessing'])
+        print(f"Applied {request.args['preprocessing']} to {audio_file_path}")
 
     transcript = ""
     transcript = sr.convert_speech_to_text(audio_file_path)
@@ -53,6 +76,11 @@ def apply_vad():
     audio_file_path = 'test.wav'
     audio_file.save(audio_file_path)
     print(f"Saved 'audio_data' at {audio_file_path}")
+
+    if 'preprocessing' in request.args.keys():
+        print("Applying denoising...")
+        apply_denoising(audio_file_path, request.args['preprocessing'])
+        print(f"Applied {request.args['preprocessing']} to {audio_file_path}")
 
     voice_segments = vad.get_segments(audio_file_path)
     for segment in voice_segments:

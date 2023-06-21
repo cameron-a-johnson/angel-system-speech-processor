@@ -1,4 +1,5 @@
 import argparse
+import denoising
 import json
 import numpy as np
 import pyaudio
@@ -61,16 +62,26 @@ def read_audio_stream():
 
     return WAVE_OUTPUT_FILENAME
 
-def apply_asr(file: str):
+def apply_asr(file: str, preprocessing: str):
     with open(file, 'rb') as f:
         print(f"Querying {ASR_URL}")
-        x = requests.post(ASR_URL, files={'audio_data': f})
+        params = {}
+        if preprocessing:
+            params['preprocessing'] = preprocessing
+        x = requests.post(ASR_URL,
+                          files= {'audio_data': f},
+                          params=params)
     return x.text
 
-def apply_vad(file: str):
+def apply_vad(file: str, preprocessing: str):
     with open(file, 'rb') as f:
         print(f"Querying {VAD_URL}")
-        x = requests.post(VAD_URL, files={'audio_data': f})
+        params = {}
+        if preprocessing:
+            params['preprocessing'] = preprocessing
+        x = requests.post(VAD_URL,
+                          files= {'audio_data': f},
+                          params=params)
     return json.loads(x.content)['segments']
 
 def _print_voice_segments(segments: List[Tuple[float]]):
@@ -84,25 +95,29 @@ if __name__ == "__main__":
     parser = argparse.ArgumentParser()
     parser.add_argument("-f", "--file",
         help="Process the provided wav file")
-    parser.add_argument('-a', '--asr',
-                        action='store_true')
-    parser.add_argument('--vd',
-                        action='store_true')
+    parser.add_argument('-a', '--asr', action='store_true')
+    parser.add_argument('--vd', action='store_true')
+    parser.add_argument("--preprocessing", type=str,
+                        help="Values are [mfcc_up|mfcc_down|mfcc_median|centroid_mb|centroid_s|power]")
     args = parser.parse_args()
+    
+    reduction_values = [e.name for e in denoising.Reductions]
+    if args.preprocessing not in reduction_values:
+        raise ValueError(f"Improper preprocessing stage {args.preprocessing} specified.")
 
     if args.asr:
         if args.file:
-            print(apply_asr(args.file))
+            print(apply_asr(args.file, args.preprocessing))
         else:
             filename = read_audio_stream()
-            print(apply_asr(filename))
+            print(apply_asr(filename, args.preprocessing))
 
     voice_segments = None
     if args.vd:
         if args.file:
-            voice_segments = apply_vad(args.file)
+            voice_segments = apply_vad(args.file, args.preprocessing)
         else:
             filename = read_audio_stream()
-            voice_segments = apply_vad(filename)
+            voice_segments = apply_vad(filename, args.preprocessing)
         _print_voice_segments(voice_segments)
 
