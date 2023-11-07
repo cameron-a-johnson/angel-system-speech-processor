@@ -7,6 +7,8 @@
 ```
 conda env create -f speech_server.yml
 conda activate speech_server
+sudo apt-get install ffmpeg
+sudo apt-get install sox
 ```
 
 The server can then be instantiated with:
