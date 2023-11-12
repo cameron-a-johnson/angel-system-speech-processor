@@ -4,14 +4,13 @@
 # 2. visit hf.co/settings/tokens to create an access token
 # 3. instantiate pretrained voice activity detection pipeline
 
+import os
 import sys
 import time
 
 from pyannote.audio import Pipeline
 
-# This token must be tied to a consenting HuggingFace account.
-# Currently, this is tied to @derkmed (Derek Ahmed)'s account.
-HUGGING_FACE_TOKEN = "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"
+HUGGING_FACE_TOKEN =  os.getenv("HUGGING_FACE_ACCESS_TOKEN")
 
 class VoiceActivityDetector:
 
