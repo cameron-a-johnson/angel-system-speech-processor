@@ -15,8 +15,8 @@ CHANNELS = 1
 RATE = 44100
 RECORD_SECONDS = 4
 
-ASR_URL = 'http://communication.cs.columbia.edu:55667/asr'
-VAD_URL = 'http://communication.cs.columbia.edu:55667/vad'
+ASR_URL = 'http://multilingual.cs.columbia.edu:55667/asr'
+VAD_URL = 'http://multilingual.cs.columbia.edu:55667/vad'
 WAVE_OUTPUT_FILENAME = "output.wav"
 
 def read_audio_stream():
