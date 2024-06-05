@@ -2,6 +2,12 @@
 
 ## Running the Server
 
+### Installing dependencies with apt
+
+```
+sudo apt update && apt install -y sox ffmpeg
+```
+
 ### Create conda environment
 
 ```
@@ -14,6 +20,8 @@ The server can then be instantiated with:
 ```
 export CUDA_VISIBLE_DEVICES=4; python speech_server.py
 ```
+
+(Note: you may need to remove the "export" command, for example if you only have one GPU, so device 4 does not exist.)
 
 ## Running the Client
 
